@@ -152,7 +152,7 @@ def nothing_msg(msg):
 def source_msg(msg):
     api.messages.send(peer_id=msg['peer_id'],
                       random_id=random.randint(1, 2 ** 31),
-                      message='https://github.com/Andrien777/VKBot/blob/master/main.py')
+                      message='https://github.com/Andrien777/VKBot/')
 
 
 def check_deadlines():
