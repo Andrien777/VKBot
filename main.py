@@ -7,13 +7,16 @@ import datetime
 import threading
 
 VK_API_TOKEN: str
-with open("TOKEN.json", 'r') as file:
-    VK_API_TOKEN = json.load(file)
-GROUP = 217867161
-ADMINS = (559617832, 307644172)
+GROUP: int
+ADMINS: tuple
 PEERS = [2000000001, 2000000002]
 COMING_DEADLINES = dict()
-
+with open("TOKEN.json", 'r') as file:
+    VK_API_TOKEN = json.load(file)
+with open("GROUP.json", 'r') as file:
+    GROUP = json.load(file)
+with open("ADMINS.json", 'r') as file:
+    ADMINS = json.load(file)
 
 api = vk.API(access_token=VK_API_TOKEN, v='5.95')
 
