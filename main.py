@@ -51,6 +51,7 @@ def help_msg(msg):
 /add_deadline <предмет> - <время> - +дедлайн, только админам
 /remove_deadline <предмет> - -дедлайн, только админам
 /nothing
+/sourcecode - ссыль на исходники
 Дата и время в формате ДД.ММ.ГГГГ_ЧЧ:ММ:СС""")
 
 
@@ -148,6 +149,12 @@ def nothing_msg(msg):
                       message='&#13;')
 
 
+def source_msg(msg):
+    api.messages.send(peer_id=msg['peer_id'],
+                      random_id=random.randint(1, 2 ** 31),
+                      message='https://github.com/Andrien777/VKBot/blob/master/main.py')
+
+
 def check_deadlines():
     fin = open("deadlines.json", "r")
     data = json.load(fin)
@@ -225,6 +232,8 @@ while True:
                         update['object'])
                 elif update['object']['text'] == '/nothing':
                     nothing_msg(update['object'])
+                elif update['object']['text'] == '/sourcecode':
+                    source_msg(update['object'])
     for deadline in COMING_DEADLINES:
         inform_deadline(deadline, COMING_DEADLINES[deadline])
     ts = longPoll['ts']
