@@ -5,6 +5,8 @@ import random
 import json
 import datetime
 import threading
+import bs4
+import html
 
 VK_API_TOKEN: str
 GROUP: int
@@ -52,6 +54,7 @@ def help_msg(msg):
 /remove_deadline <предмет> - -дедлайн, только админам
 /nothing
 /sourcecode - ссыль на исходники
+/bash - рандомная цитата с башорга
 Дата и время в формате ДД.ММ.ГГГГ_ЧЧ:ММ:СС""")
 
 
@@ -155,6 +158,20 @@ def source_msg(msg):
                       message='https://github.com/Andrien777/VKBot/')
 
 
+def get_bash_quote():
+    web = requests.get('https://башорг.рф/rss/')
+    soup = bs4.BeautifulSoup(web.text, 'xml')
+    results = soup.find_all(name='item')
+    return html.unescape(
+        random.choice(results).description.text.replace('&lt;', '<').replace('&rt;', '>').replace("<br>", '\n'))
+
+
+def quote_msg(msg):
+    api.messages.send(peer_id=msg['peer_id'],
+                      random_id=random.randint(1, 2 ** 31),
+                      message=get_bash_quote())
+
+
 def check_deadlines():
     fin = open("deadlines.json", "r")
     data = json.load(fin)
@@ -200,7 +217,6 @@ def thread_task():
 thread = threading.Thread(target=thread_task)
 thread.start()
 
-
 while True:
     longPoll = requests.post('%s' % server, data={'act': 'a_check',
                                                   'key': key,
@@ -234,6 +250,8 @@ while True:
                     nothing_msg(update['object'])
                 elif update['object']['text'] == '/sourcecode':
                     source_msg(update['object'])
+                elif update['object']['text'] == '/bash':
+                    quote_msg(update['object'])
     for deadline in COMING_DEADLINES:
         inform_deadline(deadline, COMING_DEADLINES[deadline])
     ts = longPoll['ts']
