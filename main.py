@@ -70,6 +70,12 @@ def spin_msg(msg):
                       attachment='wall-217867161_1')
 
 
+def up4k_msg(msg):
+    api.messages.send(peer_id=msg['peer_id'],
+                      random_id=random.randint(1, 2 ** 31),
+                      attachment='wall-217867161_4')
+
+
 def poh_msg(msg):
     api.messages.send(peer_id=msg['peer_id'],
                       random_id=random.randint(1, 2 ** 31),
@@ -252,6 +258,8 @@ while True:
                     source_msg(update['object'])
                 elif update['object']['text'] == '/bash':
                     quote_msg(update['object'])
+                elif update['object']['text'] == '/upya4ka':
+                    up4k_msg(update['object'])
     for deadline in COMING_DEADLINES:
         inform_deadline(deadline, COMING_DEADLINES[deadline])
     ts = longPoll['ts']
