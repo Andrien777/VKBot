@@ -262,6 +262,9 @@ while True:
                     elif update['object']['text'] == '/upya4ka':
                         up4k_msg(update['object'])
     except KeyError:
+        api = vk.API(access_token=VK_API_TOKEN, v='5.95')
+        longPoll = api.groups.getLongPollServer(group_id=GROUP)
+        server, key, ts = longPoll['server'], longPoll['key'], longPoll['ts']
         continue
     for deadline in COMING_DEADLINES:
         inform_deadline(deadline, COMING_DEADLINES[deadline])
