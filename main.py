@@ -1,12 +1,13 @@
-import time
-import vk
-import requests
-import random
-import json
 import datetime
-import threading
-import bs4
 import html
+import json
+import random
+import threading
+import time
+
+import bs4
+import requests
+import vk
 
 VK_API_TOKEN: str
 GROUP: int
@@ -22,22 +23,22 @@ with open("ADMINS.json", 'r') as file:
 
 api = vk.API(access_token=VK_API_TOKEN, v='5.95')
 
-longPoll = api.groups.getLongPollServer(group_id=GROUP)
-server, key, ts = longPoll['server'], longPoll['key'], longPoll['ts']
+long_poll = api.groups.getLongPollServer(group_id=GROUP)
+server, key, ts = long_poll['server'], long_poll['key'], long_poll['ts']
 
 
 def start_msg(msg):
-    startMessages = ["Я пришел с миром!", "Какие люди и без охраны!",
+    start_messages = ["Я пришел с миром!", "Какие люди и без охраны!",
                      "Сколько лет, сколько зим!", "Отличное выглядишь!", "Салют!", "Мы знакомы?",
                      "Здравствуйте, товарищи!",
                      "Как настроение?", "Не верю своим глазам! Ты ли это?", "Гоп-стоп, мы подошли из-за угла.",
                      "Мне кажется или я где-то вас видел?", "Какие планы на вечер?", "Привет, чуваки!",
                      "Какие люди нарисовались!"]
-    msgText = random.choice(startMessages)
+    msg_text = random.choice(start_messages)
 
     api.messages.send(peer_id=msg['peer_id'],
                       random_id=random.randint(1, 2 ** 31),
-                      message=msgText)
+                      message=msg_text)
 
 
 def help_msg(msg):
@@ -225,13 +226,13 @@ thread = threading.Thread(target=thread_task)
 thread.start()
 
 while True:
-    longPoll = requests.post('%s' % server, data={'act': 'a_check',
-                                                  'key': key,
-                                                  'ts': ts,
-                                                  'wait': 25}).json()
+    long_poll = requests.post('%s' % server, data={'act': 'a_check',
+                                                   'key': key,
+                                                   'ts': ts,
+                                                   'wait': 25}).json()
     try:
-        if longPoll['updates'] and len(longPoll['updates']) != 0:
-            for update in longPoll['updates']:
+        if long_poll['updates'] and len(long_poll['updates']) != 0:
+            for update in long_poll['updates']:
                 if update['type'] == 'message_new':
                     if update['object']['peer_id'] not in PEERS:
                         PEERS.append(update['object']['peer_id'])
@@ -263,9 +264,9 @@ while True:
                         up4k_msg(update['object'])
     except KeyError:
         api = vk.API(access_token=VK_API_TOKEN, v='5.95')
-        longPoll = api.groups.getLongPollServer(group_id=GROUP)
-        server, key, ts = longPoll['server'], longPoll['key'], longPoll['ts']
+        long_poll = api.groups.getLongPollServer(group_id=GROUP)
+        server, key, ts = long_poll['server'], long_poll['key'], long_poll['ts']
         continue
     for deadline in COMING_DEADLINES:
         inform_deadline(deadline, COMING_DEADLINES[deadline])
-    ts = longPoll['ts']
+    ts = long_poll['ts']
