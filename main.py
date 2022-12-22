@@ -229,38 +229,40 @@ while True:
                                                   'key': key,
                                                   'ts': ts,
                                                   'wait': 25}).json()
-
-    if longPoll['updates'] and len(longPoll['updates']) != 0:
-        for update in longPoll['updates']:
-            if update['type'] == 'message_new':
-                if update['object']['peer_id'] not in PEERS:
-                    PEERS.append(update['object']['peer_id'])
-                if update['object']['text'] == '/start':
-                    start_msg(update['object'])
-                elif update['object']['text'] == '/help':
-                    help_msg(update['object'])
-                elif update['object']['text'] == '/gelich':
-                    gelich_msg(update['object'])
-                elif update['object']['text'] == '/spin':
-                    spin_msg(update['object'])
-                elif update['object']['text'] == '/pohuy':
-                    poh_msg(update['object'])
-                elif update['object']['text'] == '/deadlines':
-                    deadlines_msg(update['object'])
-                elif update['object']['text'].startswith('/add_deadline '):
-                    add_deadline(update['object']) if update['object']['from_id'] in ADMINS else notadmin_msg(
-                        update['object'])
-                elif update['object']['text'].startswith('/remove_deadline '):
-                    rem_deadline(update['object']) if update['object']['from_id'] in ADMINS else notadmin_msg(
-                        update['object'])
-                elif update['object']['text'] == '/nothing':
-                    nothing_msg(update['object'])
-                elif update['object']['text'] == '/sourcecode':
-                    source_msg(update['object'])
-                elif update['object']['text'] == '/bash':
-                    quote_msg(update['object'])
-                elif update['object']['text'] == '/upya4ka':
-                    up4k_msg(update['object'])
+    try:
+        if longPoll['updates'] and len(longPoll['updates']) != 0:
+            for update in longPoll['updates']:
+                if update['type'] == 'message_new':
+                    if update['object']['peer_id'] not in PEERS:
+                        PEERS.append(update['object']['peer_id'])
+                    if update['object']['text'] == '/start':
+                        start_msg(update['object'])
+                    elif update['object']['text'] == '/help':
+                        help_msg(update['object'])
+                    elif update['object']['text'] == '/gelich':
+                        gelich_msg(update['object'])
+                    elif update['object']['text'] == '/spin':
+                        spin_msg(update['object'])
+                    elif update['object']['text'] == '/pohuy':
+                        poh_msg(update['object'])
+                    elif update['object']['text'] == '/deadlines':
+                        deadlines_msg(update['object'])
+                    elif update['object']['text'].startswith('/add_deadline '):
+                        add_deadline(update['object']) if update['object']['from_id'] in ADMINS else notadmin_msg(
+                            update['object'])
+                    elif update['object']['text'].startswith('/remove_deadline '):
+                        rem_deadline(update['object']) if update['object']['from_id'] in ADMINS else notadmin_msg(
+                            update['object'])
+                    elif update['object']['text'] == '/nothing':
+                        nothing_msg(update['object'])
+                    elif update['object']['text'] == '/sourcecode':
+                        source_msg(update['object'])
+                    elif update['object']['text'] == '/bash':
+                        quote_msg(update['object'])
+                    elif update['object']['text'] == '/upya4ka':
+                        up4k_msg(update['object'])
+    except KeyError:
+        continue
     for deadline in COMING_DEADLINES:
         inform_deadline(deadline, COMING_DEADLINES[deadline])
     ts = longPoll['ts']
