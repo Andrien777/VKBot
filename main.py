@@ -269,4 +269,5 @@ while True:
         continue
     for deadline in COMING_DEADLINES:
         inform_deadline(deadline, COMING_DEADLINES[deadline])
+    COMING_DEADLINES.clear()
     ts = long_poll['ts']
