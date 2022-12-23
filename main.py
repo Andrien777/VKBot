@@ -21,6 +21,12 @@ with open("GROUP.json", 'r') as file:
 with open("ADMINS.json", 'r') as file:
     ADMINS = json.load(file)
 
+STICKER_IDS = {'/ogre': '457239022', '/bebrou': '457239023', '/bigbrain': '457239024', '/sleeping': '457239025',
+               '/xd': '457239026', '/fire': '457239027', '/walrus': '457239028', '/bruh': '457239029',
+               '/based': '457239030', '/vsempoh': '457239031', '/starosta1': '457239037',
+               '/starosta2': '457239032', '/char': '457239033', '/genius': '457239034', '/pickle': '457239035',
+               '/vlad': '457239036', '/ryan': '457239038', '/noname': '457239039'}
+
 api = vk.API(access_token=VK_API_TOKEN, v='5.95')
 
 long_poll = api.groups.getLongPollServer(group_id=GROUP)
@@ -29,11 +35,11 @@ server, key, ts = long_poll['server'], long_poll['key'], long_poll['ts']
 
 def start_msg(msg):
     start_messages = ["Я пришел с миром!", "Какие люди и без охраны!",
-                     "Сколько лет, сколько зим!", "Отличное выглядишь!", "Салют!", "Мы знакомы?",
-                     "Здравствуйте, товарищи!",
-                     "Как настроение?", "Не верю своим глазам! Ты ли это?", "Гоп-стоп, мы подошли из-за угла.",
-                     "Мне кажется или я где-то вас видел?", "Какие планы на вечер?", "Привет, чуваки!",
-                     "Какие люди нарисовались!"]
+                      "Сколько лет, сколько зим!", "Отличное выглядишь!", "Салют!", "Мы знакомы?",
+                      "Здравствуйте, товарищи!",
+                      "Как настроение?", "Не верю своим глазам! Ты ли это?", "Гоп-стоп, мы подошли из-за угла.",
+                      "Мне кажется или я где-то вас видел?", "Какие планы на вечер?", "Привет, чуваки!",
+                      "Какие люди нарисовались!"]
     msg_text = random.choice(start_messages)
 
     api.messages.send(peer_id=msg['peer_id'],
@@ -58,6 +64,24 @@ def help_msg(msg):
 /bash - рандомная цитата с башорга
 /upya4ka - ...
 Дата и время в формате ДД.ММ.ГГГГ_ЧЧ:ММ:СС""")
+
+
+def sticker_list(msg):
+    text = ''
+    for sticker in STICKER_IDS:
+        text += sticker + ', '
+    text = text.rstrip(', ')
+    api.messages.send(peer_id=msg['peer_id'],
+                      random_id=random.randint(1, 2 ** 31),
+                      message=text)
+
+
+def send_sticker(msg):
+    attach = 'photo-217867161_'
+    attach += STICKER_IDS[msg['text']]
+    api.messages.send(peer_id=msg['peer_id'],
+                      random_id=random.randint(1, 2 ** 31),
+                      attachment=attach)
 
 
 def gelich_msg(msg):
@@ -262,6 +286,10 @@ while True:
                         quote_msg(update['object'])
                     elif update['object']['text'] == '/upya4ka':
                         up4k_msg(update['object'])
+                    elif update['object']['text'] == '/stickers':
+                        sticker_list(update['object'])
+                    elif update['object']['text'] in STICKER_IDS:
+                        send_sticker(update['object'])
     except KeyError:
         api = vk.API(access_token=VK_API_TOKEN, v='5.95')
         long_poll = api.groups.getLongPollServer(group_id=GROUP)
