@@ -4,22 +4,26 @@ import json
 import random
 import threading
 import time
-
 import bs4
 import requests
 import vk
+import wolframalpha
 
 VK_API_TOKEN: str
+WA_TOKEN: str
 GROUP: int
 ADMINS: tuple
 PEERS = [2000000001, 2000000002]
 COMING_DEADLINES = dict()
 with open("TOKEN.json", 'r') as file:
     VK_API_TOKEN = json.load(file)
+with open("WA_TOKEN.json", 'r') as file:
+    WA_TOKEN = json.load(file)
 with open("GROUP.json", 'r') as file:
     GROUP = json.load(file)
 with open("ADMINS.json", 'r') as file:
     ADMINS = json.load(file)
+wolfram = wolframalpha.Client(WA_TOKEN)
 
 STICKER_IDS = {'/ogre': '457239022', '/bebrou': '457239023', '/bigbrain': '457239024', '/sleeping': '457239025',
                '/xd': '457239026', '/fire': '457239027', '/walrus': '457239028', '/bruh': '457239029',
@@ -64,6 +68,7 @@ def help_msg(msg):
 /bash - рандомная цитата с башорга
 /upya4ka - ...
 /stickers - список команд для отправки "стикеров"
+/wolfram <запрос> - запрос сервису Wolfram|Alpha
 Дата и время в формате ДД.ММ.ГГГГ_ЧЧ:ММ:СС""")
 
 
@@ -241,6 +246,15 @@ def inform_deadline(deadline, delta: str):
                           message=text)
 
 
+def wolfram_msg(msg):
+    question = msg['text'].split(' ', maxsplit=1)[1]
+    res = wolfram.query(question)
+    text = next(res.results).text
+    api.messages.send(peer_id=msg['peer_id'],
+                      random_id=random.randint(1, 2 ** 31),
+                      message=text)
+
+
 def thread_task():
     while True:
         check_deadlines()
@@ -291,6 +305,8 @@ while True:
                         sticker_list(update['object'])
                     elif update['object']['text'] in STICKER_IDS:
                         send_sticker(update['object'])
+                    elif update['object']['text'].startswith('/wolfram '):
+                        wolfram_msg(update['object'])
     except KeyError:
         api = vk.API(access_token=VK_API_TOKEN, v='5.95')
         long_poll = api.groups.getLongPollServer(group_id=GROUP)
