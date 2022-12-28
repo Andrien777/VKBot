@@ -69,6 +69,7 @@ def help_msg(msg):
 /upya4ka - ...
 /stickers - список команд для отправки "стикеров"
 /wolfram <запрос> - запрос сервису Wolfram|Alpha
+/brainfuck <код> [<ввод>] - выполнить код на Brainfuck. А почему бы и да?
 Дата и время в формате ДД.ММ.ГГГГ_ЧЧ:ММ:СС""")
 
 
@@ -255,6 +256,86 @@ def wolfram_msg(msg):
                       message=text)
 
 
+def brainfuck_parser(code, input=''):
+    tape = [0]*30000
+    pos = 0
+    height = 0
+    input_index = 0
+    output = ''
+    for char in code:
+        if char == '[':
+            height += 1
+        elif char == ']':
+            height -= 1
+        if height < 0:
+            raise SyntaxError("Invalid bracket placement")
+    if height != 0:
+        raise SyntaxError("Unclosed brackets")
+    timer = time.time()
+    code_index = 0
+    while code_index < len(code):
+        if code[code_index] == '+':
+            tape[pos] += 1
+            tape[pos] %= 256
+        elif code[code_index] == '-':
+            tape[pos] -= 1
+            tape[pos] %= 256
+        elif code[code_index] == '>':
+            pos += 1
+            pos %= 30000
+        elif code[code_index] == '<':
+            pos -= 1
+            pos %= 30000
+        elif code[code_index] == '.':
+            output += chr(tape[pos])
+        elif code[code_index] == ',':
+            tape[pos] = ord(input[input_index])
+            input_index += 1
+        elif code[code_index] == '[':
+            if tape[pos] == 0:
+                height += 1
+                while height != 0:
+                    code_index += 1
+                    if code[code_index] == '[':
+                        height += 1
+                    elif code[code_index] == ']':
+                        height -= 1
+        elif code[code_index] == ']':
+            if tape[pos] != 0:
+                height += 1
+                while height != 0:
+                    code_index -= 1
+                    if code[code_index] == '[':
+                        height -= 1
+                    elif code[code_index] == ']':
+                        height += 1
+        code_index += 1
+        if time.time() - timer > 20:
+            raise TimeoutError(output)
+    return output
+
+
+def brainfuck_msg(msg):
+    args = msg['text'].split(' ', maxsplit=2)
+    code = args[1]
+    out: str
+    text: str
+    try:
+        if len(args) > 2:
+            out = brainfuck_parser(code, args[2])
+        else:
+            out = brainfuck_parser(code)
+        text = f"Output: {out}"
+    except TimeoutError as e:
+        text = f"Output: {e.args}\nException: TimeoutError()"
+    except BaseException as e:
+        text = f"Exception: {e.__class__}"
+    api.messages.send(peer_id=msg['peer_id'],
+                      random_id=random.randint(1, 2 ** 31),
+                      message=text)
+
+
+
 def thread_task():
     while True:
         check_deadlines()
@@ -307,6 +388,8 @@ while True:
                         send_sticker(update['object'])
                     elif update['object']['text'].startswith('/wolfram '):
                         wolfram_msg(update['object'])
+                    elif update['object']['text'].startswith('/brainfuck '):
+                        brainfuck_msg(update['object'])
     except KeyError:
         api = vk.API(access_token=VK_API_TOKEN, v='5.95')
         long_poll = api.groups.getLongPollServer(group_id=GROUP)
