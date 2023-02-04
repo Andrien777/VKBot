@@ -52,7 +52,7 @@ VK_API_TOKEN: str
 WA_TOKEN: str
 GROUP: int
 ADMINS: tuple
-PEERS = [2000000001, 2000000002]
+PEERS: list
 COMING_DEADLINES = dict()
 COMMAND_QUEUE = Queue()
 STICKER_IDS = {'/ogre': '457239022', '/bebrou': '457239023', '/bigbrain': '457239024', '/sleeping': '457239025',
@@ -71,6 +71,8 @@ with open("GROUP.json", 'r') as file:
     GROUP = json.load(file)
 with open("ADMINS.json", 'r') as file:
     ADMINS = json.load(file)
+with open("PEERS.json", 'r') as file:
+    PEERS = json.load(file)
 wolfram = wolframalpha.Client(WA_TOKEN)
 
 api = vk.API(access_token=VK_API_TOKEN, v='5.95')
@@ -485,6 +487,8 @@ while True:
                     if update['type'] == 'message_new':
                         if update['object']['peer_id'] not in PEERS:
                             PEERS.append(update['object']['peer_id'])
+                            with open("PEERS.json", "w") as fout:
+                                json.dump(PEERS, fout)
                         if update['object']['text'] in STICKER_IDS or \
                                 update['object']['text'] in COMMANDS or \
                                 any(update['object']['text'].startswith(i) for i in ARG_COMMANDS):
