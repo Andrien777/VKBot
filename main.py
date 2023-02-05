@@ -3,10 +3,10 @@ import html
 import json
 import random
 import re
+import sys
 import threading
 import time
 from queue import Queue
-
 import bs4
 import requests
 import vk
@@ -74,7 +74,22 @@ with open("PEERS.json", 'r') as file:
     PEERS = json.load(file)
 wolfram = wolframalpha.Client(WA_TOKEN)
 
-with vk.API(access_token=VK_API_TOKEN, v='5.95') as api:
+
+class CustomAPI:
+    api: vk.session.API
+
+    def __init__(self, access_token=None, **kwargs):
+        self.api = vk.API(access_token, **kwargs)
+
+    def __enter__(self):
+        return self.api
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        print("Closing")
+        api.__getattribute__('session').close()
+
+
+with CustomAPI(access_token=VK_API_TOKEN, v='5.95') as api:
     long_poll = api.groups.getLongPollServer(group_id=GROUP)
     server, key, ts = long_poll['server'], long_poll['key'], long_poll['ts']
 
@@ -415,14 +430,6 @@ with vk.API(access_token=VK_API_TOKEN, v='5.95') as api:
                 "/bash": quote_message, "/stickers": sticker_list}
 
 
-    def bg_deadlines_check():
-        while True:
-            if time.time() % 60 == 0:
-                check_deadlines()
-            if EXIT:
-                break
-
-
     def message_parser(message):
         if message['text'] in COMMANDS:
             COMMANDS[message['text']](message)
@@ -443,55 +450,46 @@ with vk.API(access_token=VK_API_TOKEN, v='5.95') as api:
     def message_sink():
         while True:
             if not COMMAND_QUEUE.empty():
-                message_parser(COMMAND_QUEUE.get())
+                try:
+                    message_parser(COMMAND_QUEUE.get())
+                except BaseException:
+                    sys.exit(0)
             if EXIT:
                 break
 
-
-    deadline_thread = threading.Thread(target=bg_deadlines_check)
-    deadline_thread.start()
 
     message_thread = threading.Thread(target=message_sink)
     message_thread.start()
 
     while True:
+        long_poll = requests.post('%s' % server, data={'act': 'a_check',
+                                                       'key': key,
+                                                       'ts': ts,
+                                                       'wait': 25}).json()
         try:
-            long_poll = requests.post('%s' % server, data={'act': 'a_check',
-                                                           'key': key,
-                                                           'ts': ts,
-                                                           'wait': 25}).json()
-            try:
-                if long_poll['updates'] and len(long_poll['updates']) != 0:
-                    for update in long_poll['updates']:
-                        if update['type'] == 'message_new':
-                            if update['object']['peer_id'] not in PEERS:
-                                PEERS.append(update['object']['peer_id'])
-                                with open("PEERS.json", "w") as fout:
-                                    json.dump(PEERS, fout)
-                            if update['object']['text'] in STICKER_IDS or \
-                                    update['object']['text'] in COMMANDS or \
-                                    any(update['object']['text'].startswith(i) for i in ARG_COMMANDS):
-                                COMMAND_QUEUE.put(update['object'])
-                            if swear_check(update['object']):
-                                api.messages.send(peer_id=update['object']['peer_id'],
-                                                  random_id=random.randint(1, 2 ** 31),
-                                                  message="Не материться!")
-
-            except KeyError:
-                api = vk.API(access_token=VK_API_TOKEN, v='5.95')
-                long_poll = api.groups.getLongPollServer(group_id=GROUP)
-                server, key, ts = long_poll['server'], long_poll['key'], long_poll['ts']
-                continue
-            for deadline in COMING_DEADLINES:
-                inform_deadline(deadline, COMING_DEADLINES[deadline])
-            COMING_DEADLINES.clear()
-            ts = long_poll['ts']
-        except BaseException:
-            print("Atempting to close")
-            EXIT = True
-            deadline_thread.join()
-            message_thread.join()
-            while deadline_thread.is_alive() or message_thread.is_alive():
-                continue
-            print("Closed")
-            break
+            if long_poll['updates'] and len(long_poll['updates']) != 0:
+                for update in long_poll['updates']:
+                    if update['type'] == 'message_new':
+                        if update['object']['peer_id'] not in PEERS:
+                            PEERS.append(update['object']['peer_id'])
+                            with open("PEERS.json", "w") as fout:
+                                json.dump(PEERS, fout)
+                        if update['object']['text'] in STICKER_IDS or \
+                                update['object']['text'] in COMMANDS or \
+                                any(update['object']['text'].startswith(i) for i in ARG_COMMANDS):
+                            COMMAND_QUEUE.put(update['object'])
+                        if swear_check(update['object']):
+                            api.messages.send(peer_id=update['object']['peer_id'],
+                                              random_id=random.randint(1, 2 ** 31),
+                                              message="Не материться!")
+        except KeyError:
+            api = vk.API(access_token=VK_API_TOKEN, v='5.95')
+            long_poll = api.groups.getLongPollServer(group_id=GROUP)
+            server, key, ts = long_poll['server'], long_poll['key'], long_poll['ts']
+            continue
+        if time.time() % 60 == 0:
+            check_deadlines()
+        for deadline in COMING_DEADLINES:
+            inform_deadline(deadline, COMING_DEADLINES[deadline])
+        COMING_DEADLINES.clear()
+        ts = long_poll['ts']
