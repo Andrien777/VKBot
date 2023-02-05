@@ -10,6 +10,7 @@ import vk
 import wolframalpha
 from queue import Queue
 import re
+from math import floor
 
 
 similar_letters = {'а': ['а', 'a', '@'],
@@ -437,8 +438,8 @@ COMMANDS = {"/start": start_message, "/help": help_message, "/spin": spin_messag
 
 def bg_deadlines_check():
     while True:
-        check_deadlines()
-        time.sleep(60)
+        if time.time() % 60 == 0:
+            check_deadlines()
         if EXIT:
             break
 
