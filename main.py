@@ -7,6 +7,7 @@ import sys
 import threading
 import time
 from queue import Queue
+
 import bs4
 import requests
 import vk
@@ -92,6 +93,8 @@ class CustomAPI:
 api = vk.API(access_token=VK_API_TOKEN, v='5.95')
 long_poll = api.groups.getLongPollServer(group_id=GROUP)
 server, key, ts = long_poll['server'], long_poll['key'], long_poll['ts']
+
+
 def swear_check(message):
     PATTERN_1 = r''.join((
         r'\w{0,5}[хx]([хx\s\!@#\$%\^&*+-\|\/]{0,6})',
@@ -120,6 +123,8 @@ def swear_check(message):
                 if letter == phr:
                     text = text.replace(phr, key)
     return bool(regexp.findall(text))
+
+
 def start_message(message):
     start_messages = ["Я пришел с миром!", "Какие люди и без охраны!",
                       "Сколько лет, сколько зим!", "Отличное выглядишь!", "Салют!", "Мы знакомы?",
@@ -131,6 +136,8 @@ def start_message(message):
     api.messages.send(peer_id=message['peer_id'],
                       random_id=random.randint(1, 2 ** 31),
                       message=message_text)
+
+
 def help_message(message):
     api.messages.send(peer_id=message['peer_id'],
                       random_id=random.randint(1, 2 ** 31),
@@ -150,6 +157,8 @@ def help_message(message):
 /wolfram <запрос> - запрос сервису Wolfram|Alpha
 /brainfuck <код> [<ввод>] - выполнить код на Brainfuck. А почему бы и да?
 Дата и время в формате ДД.ММ.ГГГГ_ЧЧ:ММ:СС""")
+
+
 def sticker_list(message):
     text = ''
     for sticker in STICKER_IDS:
@@ -158,29 +167,41 @@ def sticker_list(message):
     api.messages.send(peer_id=message['peer_id'],
                       random_id=random.randint(1, 2 ** 31),
                       message=text)
+
+
 def send_sticker(message):
     attach = 'photo-217867161_'
     attach += STICKER_IDS[message['text']]
     api.messages.send(peer_id=message['peer_id'],
                       random_id=random.randint(1, 2 ** 31),
                       attachment=attach)
+
+
 def gelich_message(message):
     api.messages.send(peer_id=message['peer_id'],
                       random_id=random.randint(1, 2 ** 31),
                       attachment='wall-217867161_3')
+
+
 def spin_message(message):
     api.messages.send(peer_id=message['peer_id'],
                       random_id=random.randint(1, 2 ** 31),
                       attachment='wall-217867161_1')
+
+
 def up4k_message(message):
     api.messages.send(peer_id=message['peer_id'],
                       random_id=random.randint(1, 2 ** 31),
                       attachment='wall-217867161_4')
+
+
 def poh_message(message):
     api.messages.send(peer_id=message['peer_id'],
                       random_id=random.randint(1, 2 ** 31),
                       attachment=random.choice(
                           ['photo-217867161_457239017', 'photo-217867161_457239018', 'photo-217867161_457239019']))
+
+
 def deadlines_message(message):
     text = ""
     with open("deadlines.json", "r") as fin:
@@ -193,6 +214,8 @@ def deadlines_message(message):
     api.messages.send(peer_id=message['peer_id'],
                       random_id=random.randint(1, 2 ** 31),
                       message=text)
+
+
 def add_deadline(message):
     try:
         fin = open("deadlines.json", "r")
@@ -214,6 +237,8 @@ def add_deadline(message):
         api.messages.send(peer_id=message['peer_id'],
                           random_id=random.randint(1, 2 ** 31),
                           message="Ошибка: " + str(e))
+
+
 def rem_deadline(message):
     try:
         fin = open("deadlines.json", "r")
@@ -235,6 +260,8 @@ def rem_deadline(message):
         api.messages.send(peer_id=message['peer_id'],
                           random_id=random.randint(1, 2 ** 31),
                           message="Ошибка: " + str(e))
+
+
 def notadmin_message(message):
     name = api.users.get(user_id=message['from_id'])
     name = name[0]
@@ -242,24 +269,34 @@ def notadmin_message(message):
     api.messages.send(peer_id=message['peer_id'],
                       random_id=random.randint(1, 2 ** 31),
                       message=name + " is an impostor")
+
+
 def nothing_message(message):
     api.messages.send(peer_id=message['peer_id'],
                       random_id=random.randint(1, 2 ** 31),
                       message='&#13;')
+
+
 def source_message(message):
     api.messages.send(peer_id=message['peer_id'],
                       random_id=random.randint(1, 2 ** 31),
                       message='https://github.com/Andrien777/VKBot/')
+
+
 def get_bash_quote():
     web = requests.get('https://башорг.рф/rss/')
     soup = bs4.BeautifulSoup(web.text, 'xml')
     results = soup.find_all(name='item')
     return html.unescape(
         random.choice(results).description.text.replace('&lt;', '<').replace('&rt;', '>').replace("<br>", '\n'))
+
+
 def quote_message(message):
     api.messages.send(peer_id=message['peer_id'],
                       random_id=random.randint(1, 2 ** 31),
                       message=get_bash_quote())
+
+
 def check_deadlines():
     fin = open("deadlines.json", "r")
     data = json.load(fin)
@@ -280,6 +317,8 @@ def check_deadlines():
         data.pop(deadline)
     with open("deadlines.json", "w") as fout:
         json.dump(data, fout)
+
+
 def inform_deadline(deadline, delta: str):
     text = 'Дедлайн ' + deadline + ' скоро истекает.\nОсталось времени: '
     print(text)
@@ -292,6 +331,8 @@ def inform_deadline(deadline, delta: str):
         api.messages.send(peer_id=peer,
                           random_id=random.randint(1, 2 ** 31),
                           message=text)
+
+
 def wolfram_message(message):
     question = message['text'].split(' ', maxsplit=1)[1]
     res = wolfram.query(question)
@@ -299,6 +340,8 @@ def wolfram_message(message):
     api.messages.send(peer_id=message['peer_id'],
                       random_id=random.randint(1, 2 ** 31),
                       message=text)
+
+
 def brainfuck_parser(code, input=''):
     tape = [0] * 30000
     pos = 0
@@ -356,6 +399,8 @@ def brainfuck_parser(code, input=''):
         if time.time() - timer > 20:
             raise TimeoutError(output)
     return output
+
+
 def brainfuck_message(message):
     args = message['text'].split(' ', maxsplit=2)
     code = args[1]
@@ -374,11 +419,15 @@ def brainfuck_message(message):
     api.messages.send(peer_id=message['peer_id'],
                       random_id=random.randint(1, 2 ** 31),
                       message=text)
+
+
 COMMANDS = {"/start": start_message, "/help": help_message, "/spin": spin_message, "/gelich": gelich_message,
             "/pohuy": poh_message,
             "/deadlines": deadlines_message, "/nothing": nothing_message, "/upya4ka": up4k_message,
             "/sourcecode": source_message,
             "/bash": quote_message, "/stickers": sticker_list}
+
+
 def message_parser(message):
     if message['text'] in COMMANDS:
         COMMANDS[message['text']](message)
@@ -394,6 +443,8 @@ def message_parser(message):
         wolfram_message(message)
     elif message['text'].startswith('/brainfuck '):
         brainfuck_message(message)
+
+
 def message_sink():
     while True:
         if not COMMAND_QUEUE.empty():
@@ -403,6 +454,8 @@ def message_sink():
                 sys.exit(0)
         if EXIT:
             break
+
+
 message_thread = threading.Thread(target=message_sink)
 message_thread.start()
 while True:
