@@ -59,6 +59,7 @@ STICKER_IDS = {'/ogre': '457239022', '/bebrou': '457239023', '/bigbrain': '45723
                '/vlad': '457239036', '/ryan': '457239038', '/noname': '457239039'}
 ARG_COMMANDS = ["/add_deadline", "/remove_deadline", "/wolfram", "/brainfuck"]
 EXIT = False
+lock = threading.Lock()
 
 with open("TOKEN.json", 'r') as file:
     VK_API_TOKEN = json.load(file)
@@ -71,20 +72,6 @@ with open("ADMINS.json", 'r') as file:
 with open("PEERS.json", 'r') as file:
     PEERS = json.load(file)
 wolfram = wolframalpha.Client(WA_TOKEN)
-
-
-class CustomAPI:
-    api: vk.session.API
-
-    def __init__(self, access_token=None, **kwargs):
-        self.api = vk.API(access_token, **kwargs)
-
-    def __enter__(self):
-        return self.api
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        print("Closing")
-        api.__getattribute__('session').close()
 
 
 api = vk.API(access_token=VK_API_TOKEN, v='5.95')
@@ -200,13 +187,15 @@ def poh_message(message):
 
 def deadlines_message(message):
     text = ""
+    lock.acquire()
     with open("deadlines.json", "r") as fin:
         data = json.load(fin)
-        if len(data) != 0:
-            for subj in data:
-                text += str(subj) + ' - ' + data[subj] + '\n'
-        else:
-            text = "Пока дедлайнов нет!"
+    lock.release()
+    if len(data) != 0:
+        for subj in data:
+            text += str(subj) + ' - ' + data[subj] + '\n'
+    else:
+        text = "Пока дедлайнов нет!"
     api.messages.send(peer_id=message['peer_id'],
                       random_id=random.randint(1, 2 ** 31),
                       message=text)
@@ -214,8 +203,10 @@ def deadlines_message(message):
 
 def add_deadline(message):
     try:
+        lock.acquire()
         with open("deadlines.json", "r") as fin:
             data = json.load(fin)
+        lock.release()
         if len(data) == 0:
             data = {'': ''}
         new_deadline = message['text'].split(" ", maxsplit=1)[1].split(' - ')
@@ -224,8 +215,10 @@ def add_deadline(message):
         data[subj] = time.strftime('%d.%m.%Y_%H:%M:%S')
         if '' in data:
             data.pop('')
+        lock.acquire()
         with open("deadlines.json", "w") as fout:
             json.dump(data, fout)
+        lock.release()
         api.messages.send(peer_id=message['peer_id'],
                           random_id=random.randint(1, 2 ** 31),
                           message="Добавил")
@@ -237,6 +230,7 @@ def add_deadline(message):
 
 def rem_deadline(message):
     try:
+        lock.acquire()
         with open("deadlines.json", "r") as fin:
             data = json.load(fin)
         if len(data) == 0:
@@ -244,11 +238,13 @@ def rem_deadline(message):
                               random_id=random.randint(1, 2 ** 31),
                               message="Ошибка: Дедлайнов нет")
             return
-        fin.close()
+        lock.release()
         deadline = message['text'].split(" ", maxsplit=1)[1]
         data.pop(deadline)
+        lock.acquire()
         with open("deadlines.json", "w") as fout:
             json.dump(data, fout)
+        lock.release()
         api.messages.send(peer_id=message['peer_id'],
                           random_id=random.randint(1, 2 ** 31),
                           message="Удалил")
@@ -280,8 +276,10 @@ def source_message(message):
 
 
 def check_deadlines():
+    lock.acquire()
     with open("deadlines.json", "r") as fin:
         data = json.load(fin)
+    lock.release()
     curr = datetime.datetime.now()
     deadlines_to_delete = []
     for deadline in data:
@@ -298,8 +296,10 @@ def check_deadlines():
             COMING_DEADLINES[deadline] = 'soon'
     for deadline in deadlines_to_delete:
         data.pop(deadline)
+    lock.acquire()
     with open("deadlines.json", "w") as fout:
         json.dump(data, fout)
+    lock.release()
 
 
 def inform_deadline(deadline):
