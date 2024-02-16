@@ -1,5 +1,4 @@
 import datetime
-import html
 import json
 import random
 import re
@@ -7,7 +6,6 @@ import sys
 import threading
 import time
 from queue import Queue
-import bs4
 import requests
 import vk
 import wolframalpha
@@ -150,7 +148,6 @@ def help_message(message):
 /remove_deadline <предмет> - -дедлайн, только админам
 /nothing
 /sourcecode - ссыль на исходники
-/bash - рандомная цитата с башорга
 /upya4ka - ...
 /stickers - список команд для отправки "стикеров"
 /wolfram <запрос> - запрос сервису Wolfram|Alpha
@@ -217,22 +214,22 @@ def deadlines_message(message):
 
 def add_deadline(message):
     try:
-        fin = open("deadlines.json", "r")
-        data = json.load(fin)
+        with open("deadlines.json", "r") as fin:
+            data = json.load(fin)
         if len(data) == 0:
             data = {'': ''}
-        fin.close()
         new_deadline = message['text'].split(" ", maxsplit=1)[1].split(' - ')
         subj = new_deadline[0]
         time = datetime.datetime.strptime(new_deadline[1], '%d.%m.%Y_%H:%M:%S')
         data[subj] = time.strftime('%d.%m.%Y_%H:%M:%S')
-        data.pop('')
+        if '' in data:
+            data.pop('')
         with open("deadlines.json", "w") as fout:
             json.dump(data, fout)
         api.messages.send(peer_id=message['peer_id'],
                           random_id=random.randint(1, 2 ** 31),
                           message="Добавил")
-    except Exception as e:
+    except BaseException as e:
         api.messages.send(peer_id=message['peer_id'],
                           random_id=random.randint(1, 2 ** 31),
                           message="Ошибка: " + str(e))
@@ -240,8 +237,8 @@ def add_deadline(message):
 
 def rem_deadline(message):
     try:
-        fin = open("deadlines.json", "r")
-        data = json.load(fin)
+        with open("deadlines.json", "r") as fin:
+            data = json.load(fin)
         if len(data) == 0:
             api.messages.send(peer_id=message['peer_id'],
                               random_id=random.randint(1, 2 ** 31),
@@ -282,24 +279,9 @@ def source_message(message):
                       message='https://github.com/Andrien777/VKBot/')
 
 
-def get_bash_quote():
-    web = requests.get('https://башорг.рф/rss/')
-    soup = bs4.BeautifulSoup(web.text, 'xml')
-    results = soup.find_all(name='item')
-    return html.unescape(
-        random.choice(results).description.text.replace('&lt;', '<').replace('&rt;', '>').replace("<br>", '\n'))
-
-
-def quote_message(message):
-    api.messages.send(peer_id=message['peer_id'],
-                      random_id=random.randint(1, 2 ** 31),
-                      message=get_bash_quote())
-
-
 def check_deadlines():
-    fin = open("deadlines.json", "r")
-    data = json.load(fin)
-    fin.close()
+    with open("deadlines.json", "r") as fin:
+        data = json.load(fin)
     curr = datetime.datetime.now()
     deadlines_to_delete = []
     for deadline in data:
@@ -419,8 +401,7 @@ def brainfuck_message(message):
 COMMANDS = {"/start": start_message, "/help": help_message, "/spin": spin_message, "/gelich": gelich_message,
             "/pohuy": poh_message,
             "/deadlines": deadlines_message, "/nothing": nothing_message, "/upya4ka": up4k_message,
-            "/sourcecode": source_message,
-            "/bash": quote_message, "/stickers": sticker_list}
+            "/sourcecode": source_message, "/stickers": sticker_list, "/force_check_deadlines": check_deadlines}
 
 
 def message_parser(message):
@@ -453,8 +434,11 @@ def message_sink():
 
 def timer_task():
     while True:
-        if time.time() % 60 == 0:
-            check_deadlines()
+        try:
+            if time.time() % 60 <= 5:
+                check_deadlines()
+        except BaseException:
+            sys.exit(0)
         if EXIT:
             break
 
@@ -484,12 +468,11 @@ while True:
                         api.messages.send(peer_id=update['object']['peer_id'],
                                           random_id=random.randint(1, 2 ** 31),
                                           message="Не материться!")
-    except KeyError:
+    except BaseException:
         api = vk.API(access_token=VK_API_TOKEN, v='5.95')
         long_poll = api.groups.getLongPollServer(group_id=GROUP)
         server, key, ts = long_poll['server'], long_poll['key'], long_poll['ts']
         continue
-    check_deadlines()
     for deadline in COMING_DEADLINES:
         inform_deadline(deadline)
     COMING_DEADLINES.clear()
