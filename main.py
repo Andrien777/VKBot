@@ -7,7 +7,6 @@ import sys
 import threading
 import time
 from queue import Queue
-
 import bs4
 import requests
 import vk
@@ -309,24 +308,20 @@ def check_deadlines():
             deadlines_to_delete.append(deadline)
             continue
         delta = line - curr
-        if delta.days == 1 and delta.seconds < 100:
-            COMING_DEADLINES[deadline] = 'DAY'
-        elif delta.days == 0 and delta.seconds in range(3500, 3700):
-            COMING_DEADLINES[deadline] = 'HOUR'
+        if delta.days == 1 and 0 <= delta.seconds <= 100:
+            COMING_DEADLINES[deadline] = 'soon'
+        elif delta.days == 0 and 3500 <= delta.seconds <= 3600:
+            COMING_DEADLINES[deadline] = 'soon'
+        elif delta.days == 0 and 0 <= delta.seconds <= 100:
+            COMING_DEADLINES[deadline] = 'soon'
     for deadline in deadlines_to_delete:
         data.pop(deadline)
     with open("deadlines.json", "w") as fout:
         json.dump(data, fout)
 
 
-def inform_deadline(deadline, delta: str):
-    text = 'Дедлайн ' + deadline + ' скоро истекает.\nОсталось времени: '
-    print(text)
-    if delta == 'DAY':
-        text += '1 день'
-    elif delta == 'HOUR':
-        text += '1 час'
-    print(text)
+def inform_deadline(deadline):
+    text = 'Дедлайн ' + deadline + ' скоро истекает'
     for peer in PEERS:
         api.messages.send(peer_id=peer,
                           random_id=random.randint(1, 2 ** 31),
@@ -456,8 +451,18 @@ def message_sink():
             break
 
 
+def timer_task():
+    while True:
+        if time.time() % 60 == 0:
+            check_deadlines()
+        if EXIT:
+            break
+
+
 message_thread = threading.Thread(target=message_sink)
 message_thread.start()
+timer_thread = threading.Thread(target=timer_task)
+timer_thread.start()
 while True:
     long_poll = requests.post('%s' % server, data={'act': 'a_check',
                                                    'key': key,
@@ -484,9 +489,8 @@ while True:
         long_poll = api.groups.getLongPollServer(group_id=GROUP)
         server, key, ts = long_poll['server'], long_poll['key'], long_poll['ts']
         continue
-    if time.time() % 60 == 0:
-        check_deadlines()
+    check_deadlines()
     for deadline in COMING_DEADLINES:
-        inform_deadline(deadline, COMING_DEADLINES[deadline])
+        inform_deadline(deadline)
     COMING_DEADLINES.clear()
     ts = long_poll['ts']
